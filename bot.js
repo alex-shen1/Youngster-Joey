@@ -1,15 +1,12 @@
 const Sim = require('pokemon-showdown');
 stream = new Sim.BattleStream();
 
-// (async () => {
-//     for await (const output of stream) {
-//         console.log(output);
-//     }
-// })();
-
+// Standard initialization logic
 stream.write(`>start {"formatid":"gen1randombattle"}`);
 stream.write(`>player p1 {"name":"Alice"}`);
 stream.write(`>player p2 {"name":"Bob"}`);
+
+// Counter for how many times stream has been read
 let i = 0
 
 // Note: game initialization prints exactly 4 messages
@@ -29,6 +26,7 @@ read()
 function read(){
     stream.read().then(r => {
         console.log(i)
+        // Game state data is in JSON, so stringify any JSON that gets output
         if(r.indexOf('{') != -1 && r.lastIndexOf('}') != -1){
             console.log(r.substr(0,r.indexOf('{')))
             const j = JSON.stringify(JSON.parse(r.substr(r.indexOf('{'), r.lastIndexOf('}') + 1)), null, 2)
@@ -44,11 +42,12 @@ function read(){
             takeTurn()
         }
         else{
-            console.log("don't take turn!")
+            console.log("not taking input!")
         }
-    }, e => {console.log(i)})
+    })
 }
 
+// This was the first way I found to get user input idk
 const prompt = require('prompt-sync')()
 
 function takeTurn(){
@@ -58,6 +57,7 @@ function takeTurn(){
     console.log('P2 Move!')
     const y = prompt('');
     stream.write(`${y}`)
+    // Each round, the stream outputs 3 times so we just do it 3 times lol
     read()
     read()
     read()
