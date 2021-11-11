@@ -14,3 +14,5 @@
   - Can add `TEAM` field to player JSON if not a random battle; doing this for testing purposes
 - After that, input `>p1 {ACTION}` and `>p2 {ACTION}` e.g. `>p1 move 1`, `p2 move 1`
 - Stream will output `sideupdate`s for both sides and an `update` of the overall game state, then wait for next input of actions 
+- We can use the [Dex library](https://github.com/smogon/pokemon-showdown/blob/master/sim/DEX.md) to query moves + Pokémon types. A naive heuristic we could use is to simply pick the move/action that maximizes damage, which we can do relatively easily.
+  - I haven't found a way for Dex to natively give us specific type effectiveness on a given Pokémon, but that should be relatively easy to hardcode into a dictionary or something.
