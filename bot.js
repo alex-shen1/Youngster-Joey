@@ -1,4 +1,5 @@
 const Sim = require('pokemon-showdown');
+const {Dex} = require('pokemon-showdown');
 stream = new Sim.BattleStream();
 
 // Standard initialization logic
@@ -25,24 +26,24 @@ read()
 // Planning to return/use parsed JSON for game decisionmaking
 function read(){
     stream.read().then(r => {
-        console.log(i)
         // Game state data is in JSON, so stringify any JSON that gets output
         if(r.indexOf('{') != -1 && r.lastIndexOf('}') != -1){
             console.log(r.substr(0,r.indexOf('{')))
             const j = JSON.stringify(JSON.parse(r.substr(r.indexOf('{'), r.lastIndexOf('}') + 1)), null, 2)
-            console.log(j)
+            const obj = JSON.parse(r.substr(r.indexOf('{'), r.lastIndexOf('}') + 1))
+            console.log(JSON.stringify(obj, null, 2))
+            //console.log(j)
         }
         else{
             console.log(r)
         }
         i += 1
-        console.log(i)
         // Each round will have 3 stream messages
         if(i >= 5 && (i - 2) % 3 == 0){
             takeTurn()
         }
         else{
-            console.log("not taking input!")
+            //console.log("not taking input!")
         }
     })
 }
@@ -53,9 +54,13 @@ const prompt = require('prompt-sync')()
 function takeTurn(){
     console.log('P1 Move!')
     const x = prompt('');
+    if (x == 'quit')
+        return
     stream.write(`${x}`)
     console.log('P2 Move!')
     const y = prompt('');
+    if (y == 'quit')
+        return
     stream.write(`${y}`)
     // Each round, the stream outputs 3 times so we just do it 3 times lol
     read()
