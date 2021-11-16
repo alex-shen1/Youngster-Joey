@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/alex-shen1/AI-Project#readme",
   "dependencies": {
+    "@smogon/calc": "^0.6.0",
     "pokemon-showdown": "^0.11.7",
     "prompt-sync": "^4.2.0"
   }

@@ -2,6 +2,7 @@
 - Install Node.js on your computer (I used v16.13.0 to set up this repo)
 - Enter `npm install` into terminal - this will install the necessary dependencies (i.e. the Pokémon Showdown Node package)
 - Run the program by running `node bot.js` in terminal (currently doesn't do anything)
+- Need to also now run `npm install @smogon/calc` (if this doesn't work, delete package.json / package.lock and just re-run `npm install`)
 
 # Technical Investigations
 - Interface with the battle simulator by using the `stream` object created upon initialization
