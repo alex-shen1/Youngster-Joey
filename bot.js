@@ -9,6 +9,7 @@ stream.write(`>player p2 {"name":"Bob"}`);
 // Counter for how many times stream has been read
 let i = 0
 
+
 // Note: game initialization prints exactly 4 messages
 read()
 read()
@@ -25,25 +26,48 @@ read()
 // Planning to return/use parsed JSON for game decisionmaking
 function read(){
     stream.read().then(r => {
-        console.log(i)
+        //console.log(i)
         // Game state data is in JSON, so stringify any JSON that gets output
         if(r.indexOf('{') != -1 && r.lastIndexOf('}') != -1){
             console.log(r.substr(0,r.indexOf('{')))
-            const j = JSON.stringify(JSON.parse(r.substr(r.indexOf('{'), r.lastIndexOf('}') + 1)), null, 2)
-            console.log(j)
+            // const j = JSON.stringify(JSON.parse(r.substr(r.indexOf('{'), r.lastIndexOf('}') + 1)), null, 2)
+            // console.log(j)
+            const obj = JSON.parse(r.substr(r.indexOf('{'), r.lastIndexOf('}') + 1))
+
+            // View the active pokemon
+            for (let i = 0; i < 6; i++) {
+                if (obj.side.pokemon[i].active == true) {
+                    console.log(JSON.stringify(obj.side.pokemon[i], null, 2))
+                    break
+                }
+            }
         }
-        else{
-            console.log(r)
-        }
+        // else{
+        //      console.log(r)
+        // }
         i += 1
-        console.log(i)
+        
+
+        // console.log(i)
         // Each round will have 3 stream messages
         if(i >= 5 && (i - 2) % 3 == 0){
             takeTurn()
         }
         else{
-            console.log("not taking input!")
+            
+            // for (var x in obj) {
+            //     index.push(x);
+            // }
+            
+            // // sort the index
+            // index.sort(function (a, b) {    
+            //     return a == b ? 0 : (a > b ? 1 : -1); 
+            // }); 
+            // console.log(obj[index[1]]);
+            // console.log("not taking input!")
         }
+
+        console.log('______________________________')
     })
 }
 
@@ -63,3 +87,16 @@ function takeTurn(){
     read()
 }
 
+// function currState() {
+
+//     // build the index
+//     for (var x in obj) {
+//         index.push(x);
+//     }
+    
+//     // sort the index
+//     index.sort(function (a, b) {    
+//         return a == b ? 0 : (a > b ? 1 : -1); 
+//     }); 
+//     console.log(obj[index[1]]);
+// }
