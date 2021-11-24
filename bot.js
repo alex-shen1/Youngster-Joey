@@ -126,14 +126,8 @@ async function read() {
                     p2ActiveMon = sidepokemon2[i]
                     p2ActiveMonNum = i + 1
                     i = sidepokemon2.length
-                    console.log("###############################################")
-                } else {
-                    // console.log("###############################################")
-                    //console.log(sidepokemon2[i].moves)
-                    //p2NonActiveMoves.push(sidepokemon2[i].moves)
                 }
             }
-            console.log(p2Data.active[1].moves)
             p2ActiveMoves = p2Data.active[0].moves
             p2ActiveName = p2ActiveMon.details.substr(0, p2ActiveMon.details.indexOf(','))
             p2ActiveHP = p2ActiveMon.condition.substr(0, p2ActiveMon.condition.indexOf('/'))
@@ -188,7 +182,8 @@ function takeTurn() {
             // for (k = 0; k < p2Data.side.pokemon[j].moves.length; k++) {
             //     p2Moves.push(Dex.moves.get(p2Data.side.pokemon[j].moves[k]).id)
             // }
-            p2Moves = p2NonActiveMoves[j]
+            // HERE IS THE LINE WE NEED TO CHANGE
+            p2Moves = p1ActiveMoves
             console.log(p2Moves)
             p2Name = sidepokemon2[j].details.substr(0, sidepokemon2[j].details.indexOf(','))
             // console.log(p2Name)
