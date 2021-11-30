@@ -109,7 +109,7 @@ async function read() {
                     if (p1Side[i].condition == "0 fnt") {
                         p1AllMonDict[i + 1] = p1Side[i].details.substr(0, p1Side[i].details.indexOf(',')) + " (fainted)"
                     }
-                    else {                    
+                    else {
                         p1AllMonDict[i + 1] = p1Side[i].details.substr(0, p1Side[i].details.indexOf(',')) + " [" + p1Side[i].moves + "]"
                     }
                 }
@@ -141,7 +141,7 @@ async function read() {
                     if (p2Side[i].condition == "0 fnt") {
                         p2AllMonDict[i + 1] = p2Side[i].details.substr(0, p2Side[i].details.indexOf(',')) + " (fainted)"
                     }
-                    else {                    
+                    else {
                         p2AllMonDict[i + 1] = p2Side[i].details.substr(0, p2Side[i].details.indexOf(','))
                     }
                 }
@@ -161,7 +161,7 @@ const prompt = require('prompt-sync')()
 // Current bug exists with moves that require a recharge
 
 function takeTurn() {
-    
+
     // Handle the Human Player's input (if you need to switch or wait)
     handleP1Input();
 
@@ -171,6 +171,56 @@ function takeTurn() {
     // Each round, the stream outputs 3 times so we just do it 3 times lol
     readUntilEnd()
 }
+
+/**
+ * Function that calulates a heuristic score for each possible move based on expected damage
+ * 
+ * @param {*} expectedDamage the expected damgage of current move against current adversary
+ * @param {*} attacker the name of the active pokemon attacking
+ * @param {*} defender the name of the active pokemon defending
+ * @param {*} activeMoves the list of active moves the attacker knows
+ */
+function scoreHeuristic(expectedDamage, attacker, defender, activeMove) {
+    //accuracy*(expected_damage + probability of second effect occurring*future value expected damage of that effect + probability of critical hit * expected_damage (of that move assuming all stat changes reverted) + effect_score)
+    activeMove = Dex.mod('gen1').moves.get(activeMove) // make sure this is gen 1
+    attacker = Dex.species.get(attacker)
+    defender = Dex.species.get(defender)
+    //console.log(defender)
+
+    accuracy = activeMove.accuracy
+    if (accuracy == true)
+        accuracy = 100
+
+    critRatio = activeMove.critRatio
+    baseSpeed = attacker.baseStats["spe"]
+    critProbability = critRatio * baseSpeed / 512
+
+    secondary = activeMove.secondary
+    secondaryEffect = ""
+    secondaryProbability = 0
+    if (secondary != null) {
+        secondaryEffect = secondary["status"]
+        secondaryProbability = secondary["chance"]
+    }
+    secondaryScore = 50 * (secondaryProbability / 100)
+
+    if (activeMove.category == "Status" && activeMove.status != undefined && defender.status == undefined) {
+        primaryEffect = activeMove.status
+        console.log(primaryEffect)
+    }
+
+    score = 0
+    if (accuracy == undefined)
+        console.log(activeMove)
+    if (accuracy != 0) {
+        score = 0//(accuracy / 100) * (expectedDamage + expectedDamage * critProbability + secondaryScore + primaryEffect)
+    }
+    else {
+        score = (expectedDamage + expectedDamage * critProbability + secondaryScore + primaryEffect)
+    }
+    return score
+}
+
 
 /**
  * Function that uses Smogon's damage calculator to estimate the damage ranges from all attacks on an opposing Pokemon. Currently
@@ -201,7 +251,9 @@ function estimateDamage(attacker, attackerHP, defender, defenderHP, activeMoves,
                 new Move(gen, activeMoves[i])
             )
             //console.log(result.fullDesc()) This line seems to cause a rare bug and unnecessary anyway
-            damages.push((result.range()[0] + result.range()[1]) / 2)
+            expectedDamage = (result.range()[0] + result.range()[1]) / 2
+            score = scoreHeuristic(expectedDamage, attacker, defender, activeMoves[i])
+            damages.push(score)
             //console.log('Expected damage for ' + activeMoves[i].move + ': [' + result.range() + '] || ' + result.moveDesc())
         }
     }
@@ -214,7 +266,9 @@ function estimateDamage(attacker, attackerHP, defender, defenderHP, activeMoves,
                 new Move(gen, activeMoves[i].move)
             )
             //console.log(result.fullDesc())
-            damages.push((result.range()[0] + result.range()[1]) / 2)
+            expectedDamage = (result.range()[0] + result.range()[1]) / 2
+            score = scoreHeuristic(expectedDamage, attacker, defender, activeMoves[i])
+            damages.push(score)
             //console.log('Expected damage for ' + activeMoves[i].move + ': [' + result.range() + '] || ' + result.moveDesc())
         }
     }
@@ -275,7 +329,7 @@ function handleP2Input() {
         else {
             y = '>p2 move ' + decision[1]
         }
-    
+
         if (y == "quit")
             process.exit(0)
         stream.write(`${y}`)
@@ -298,7 +352,7 @@ function handleP2Input() {
             }
         }
         let y = '>p2 switch ' + decision[0]
-    
+
         if (y == "quit")
             process.exit(0)
         stream.write(`${y}`)
@@ -322,7 +376,7 @@ function calcBestMoves() {
             console.log("Inactive Pokemon")
             p2Moves = []
             for (k = 0; k < p2Data.side.pokemon[j].moves.length; k++) {
-                p2Moves.push(Dex.moves.get(p2Data.side.pokemon[j].moves[k]).id)
+                p2Moves.push(Dex.mod('gen1').moves.get(p2Data.side.pokemon[j].moves[k]).id)
             }
             //console.log(p2Moves)
             p2Name = p2Side[j].details.substr(0, p2Side[j].details.indexOf(','))
