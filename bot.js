@@ -178,9 +178,10 @@ function takeTurn() {
  * @param {*} expectedDamage the expected damgage of current move against current adversary
  * @param {*} attacker the name of the active pokemon attacking
  * @param {*} defender the name of the active pokemon defending
+ * @param {*} defenderHP the remaining HP of the foe
  * @param {*} activeMoves the list of active moves the attacker knows
  */
-function scoreHeuristic(expectedDamage, attacker, defender, activeMove) {
+function scoreHeuristic(expectedDamage, attacker, defender, defenderHP, activeMove) {
     //accuracy*(expected_damage + probability of second effect occurring*future value expected damage of that effect + probability of critical hit * expected_damage (of that move assuming all stat changes reverted) + effect_score)
     activeMove = Dex.mod('gen1').moves.get(activeMove) // make sure this is gen 1
     attacker = Dex.species.get(attacker)
@@ -203,22 +204,126 @@ function scoreHeuristic(expectedDamage, attacker, defender, activeMove) {
         secondaryProbability = secondary["chance"]
     }
     secondaryScore = 50 * (secondaryProbability / 100)
-
-    if (activeMove.category == "Status" && activeMove.status != undefined && defender.status == undefined) {
+    primaryScore = 0
+    const statuses = ['par', 'frz', 'psn', 'slp', 'brn']
+    has_status = statuses.reduce((accumulator, curr) => accumulator || p1ActiveMon.condition.indexOf(curr) === -1, false)
+    if (activeMove.category == "Status" && activeMove.status && !has_status) {
         primaryEffect = activeMove.status
-        console.log(primaryEffect)
-    }
 
+        if (primaryEffect == "par")
+            primaryScore = defenderHP * .5
+
+        if (primaryEffect == "frz")
+            primaryScore = defenderHP * .75
+
+        if (primaryEffect == "psn")
+            primaryScore = defenderHP * .35
+
+        if (primaryEffect == "slp")
+            primaryScore = defenderHP * .65
+
+        if (primaryEffect == "brn")
+            primaryScore = defenderHP * .35
+    }
     score = 0
-    if (accuracy == undefined)
-        console.log(activeMove)
     if (accuracy != 0) {
-        score = 0//(accuracy / 100) * (expectedDamage + expectedDamage * critProbability + secondaryScore + primaryEffect)
+        score = (accuracy / 100) * (expectedDamage + expectedDamage * critProbability + secondaryScore + primaryScore)
     }
     else {
-        score = (expectedDamage + expectedDamage * critProbability + secondaryScore + primaryEffect)
+        score = (expectedDamage + expectedDamage * critProbability + secondaryScore + primaryScore)
     }
+    if (activeMove.name.toLowerCase() == "explosion" || activeMove.name.toLowerCase() == "self-destruct")
+        score *= .55
+    if (activeMove.name.toLowerCase() == "hyper beam" || activeMove.name.toLowerCase() == "hyperbeam")
+        score *= .75
     return score
+}
+
+
+/**
+ * Function that uses Smogon's damage calculator to estimate the damage ranges from all attacks on an opposing Pokemon. Currently
+ * doesn't take any stat boosts into account.
+ * 
+ * @param {*} attacker the name of the active pokemon attacking
+ * @param {*} defender the name of the active pokemon defending
+ */
+const resistTypes = {
+    "Normal": new Set(["Rock"]),
+    "Fire": new Set(["Fire", "Water", "Rock", "Dragon"]),
+    "Water": new Set(["Water", "Grass", "Dragon"]),
+    "Electric": new Set(["Electric", "Grass", "Dragon"]),
+    "Grass": new Set(["Fire", "Grass", "Poison", "Flying", "Bug", "Dragon"]),
+    "Ice": new Set(["Ice"]),
+    "Fighting": new Set(["Poison", "Flying", "Psychic", "Bug"]),
+    "Poison": new Set(["Rock", "Ground", "Poison", "Ghost"]),
+    "Ground": new Set(["Grass", "Bug"]),
+    "Flying": new Set(["Electric", "Rock"]),
+    "Psychic": new Set(["Psychic"]),
+    "Bug": new Set(["Fire", "Fighting", "Flying", "Ghost"]),
+    "Rock": new Set(["Fighting", "Ground"]),
+    "Ghost": new Set([]),
+    "Dragon": new Set([])
+}
+
+const immuneTypes = {
+    "Normal": new Set(["Ghost"]),
+    "Fire": new Set([]),
+    "Water": new Set([]),
+    "Electric": new Set(["Ground"]),
+    "Grass": new Set([]),
+    "Ice": new Set([]),
+    "Fighting": new Set(["Ghost"]),
+    "Poison": new Set([]),
+    "Ground": new Set(["Flying"]),
+    "Flying": new Set([]),
+    "Psychic": new Set(["Dark"]),
+    "Bug": new Set([]),
+    "Rock": new Set([]),
+    "Ghost": new Set(["Normal"]),
+    "Dragon": new Set([])
+}
+
+const weakTypes = {
+    "Normal": new Set([]),
+    "Fire": new Set(["Grass", "Ice", "Bug"]),
+    "Water": new Set(["Fire", "Ground", "Rock"]),
+    "Electric": new Set(["Water", "Flying"]),
+    "Grass": new Set(["Water", "Ground", "Rock"]),
+    "Ice": new Set(["Grass", "Ground", "Flying", "Dragon"]),
+    "Fighting": new Set(["Normal", "Ice", "Rock"]),
+    "Poison": new Set(["Grass", "Bug"]),
+    "Ground": new Set(["Fire", "Electric", "Poison", "Rock"]),
+    "Flying": new Set(["Grass", "Fighting", "Bug"]),
+    "Psychic": new Set(["Fighting", "Poison"]),
+    "Bug": new Set(["Grass", "Poison", "Psychic"]),
+    "Rock": new Set(["Fire", "Ice", "Flying", "Bug"]),
+    "Ghost": new Set(["Ghost"]),
+    "Dragon": new Set(["Dragon"])
+}
+
+function typingMatchup(attacker, defender) {
+    let attackerTypes = Dex.species.get(attacker).types
+    let defenderTypes = Dex.species.get(defender).types
+    let advantageRatio = 1
+    attackerTypes.forEach(attackerType => {
+        defenderTypes.forEach(defenderType => {
+            try {
+                if (resistTypes[attackerType] && resistTypes[attackerType].has(defenderType)) {
+                    advantageRatio *= 1.5
+                }
+                if (immuneTypes[attackerType] && immuneTypes[attackerType].has(defenderType)) {
+                    advantageRatio *= 1.8
+                }
+                if (weakTypes[attackerType] && weakTypes[attackerType].has(defenderType)) {
+                    advantageRatio /= 2.2
+                }
+            }
+            catch (error) {
+                console.log(error)
+            }
+        })
+    })
+    return advantageRatio
 }
 
 
@@ -252,8 +357,24 @@ function estimateDamage(attacker, attackerHP, defender, defenderHP, activeMoves,
             )
             //console.log(result.fullDesc()) This line seems to cause a rare bug and unnecessary anyway
             expectedDamage = (result.range()[0] + result.range()[1]) / 2
-            score = scoreHeuristic(expectedDamage, attacker, defender, activeMoves[i])
+            score = scoreHeuristic(expectedDamage, attacker, defender, defenderHP, activeMoves[i])
+            // discount switching
+            if (attackerHP <= 30)
+                score *= .3
+            else if (attackerHP <= 40)
+                score *= .35
+            else if (attackerHP <= 50)
+                score *= .4
+            else if (attackerHP <= 60)
+                score *= .45
+            else if (attackerHP <= 70)
+                score *= .5
+            else
+                score *= .6
+            advantageRatio = typingMatchup(attacker, defender)
+            score *= advantageRatio
             damages.push(score)
+            console.log(score)
             //console.log('Expected damage for ' + activeMoves[i].move + ': [' + result.range() + '] || ' + result.moveDesc())
         }
     }
@@ -267,8 +388,9 @@ function estimateDamage(attacker, attackerHP, defender, defenderHP, activeMoves,
             )
             //console.log(result.fullDesc())
             expectedDamage = (result.range()[0] + result.range()[1]) / 2
-            score = scoreHeuristic(expectedDamage, attacker, defender, activeMoves[i])
+            score = scoreHeuristic(expectedDamage, attacker, defender, defenderHP, activeMoves[i].move)
             damages.push(score)
+            console.log(score)
             //console.log('Expected damage for ' + activeMoves[i].move + ': [' + result.range() + '] || ' + result.moveDesc())
         }
     }
