@@ -32,10 +32,12 @@ let p1ActiveMon = null // The active mon's info sent during side update
 let p1ActiveMoves = null // The moves of the current active mon (including move, id, pp, maxpp) etc
 let p1ActiveName = null // A string name of the active pokemon (used for smogon damage calc)
 let p1ActiveHP = null // String of the current hp of active pokemon
+let p1ActiveStats = null // Stats of the active pokemon
 let p1AllMonDict = {}; // All monsters available into which p1 can switch and their indices
 let p1Wait = null // Bool if p1 currently has to wait
 let p1ForceSwitch = null // Bool if p1 currently is forced to switch
 let p1Side = null // All the "side" data within p1Data
+let p1StatBoosts = {atk: 0, def: 0, spa: 0, spd: 0, spe: 0}
 
 let p2Data = null
 let p2ActiveMon = null
@@ -43,10 +45,12 @@ let p2ActiveMonNum = 0
 let p2ActiveMoves = null
 let p2ActiveName = null
 let p2ActiveHP = null
+let p2ActiveStats = null
 let p2AllMonDict = {}; // All monsters available into which p1 can switch and their indices
 let p2Wait = null
 let p2ForceSwitch = null
 let p2Side = null
+let p2StatBoosts = {atk: 0, def: 0, spa: 0, spd: 0, spe: 0}
 
 streamOutput = '';
 
@@ -92,6 +96,13 @@ async function read() {
         }
         else {
             console.log(r)
+            // let boostindex = r.indexOf("-boost")
+            // let unboostindex = r.indexOf("-unboost")
+            // const stat = ['atk', 'def', 'spa', 'spd', 'spe']
+            // while (boostindex != -1) {
+            //     let sub = r.substr(boostindex, )
+            // }
+            // console.log("searching")
         }
         i += 1
         if (r.indexOf('sideupdate\np1') != -1) {
@@ -111,6 +122,7 @@ async function read() {
             p1ActiveMoves = p1Data.active[0].moves
             p1ActiveName = p1ActiveMon.details.substr(0, p1ActiveMon.details.indexOf(','))
             p1ActiveHP = p1ActiveMon.condition.substr(0, p1ActiveMon.condition.indexOf('/'))
+            p1ActiveStats = p1ActiveMon.stats
 
             // Dictionary of switchable pokemon for p1
             for (i = 0; i < p1Side.length; i++) {
@@ -142,6 +154,7 @@ async function read() {
             p2ActiveMoves = p2Data.active[0].moves
             p2ActiveName = p2ActiveMon.details.substr(0, p2ActiveMon.details.indexOf(','))
             p2ActiveHP = p2ActiveMon.condition.substr(0, p2ActiveMon.condition.indexOf('/'))
+            p2ActiveStats = p1ActiveMon.stats
 
             //console.log(JSON.stringify(p2ActiveMon, null, 2))
             // Dictionary of switchable pokemon for p2
@@ -193,10 +206,11 @@ function takeTurn() {
 function scoreHeuristic(expectedDamage, attacker, defender, defenderHP, activeMove) {
     //accuracy*(expected_damage + probability of second effect occurring*future value expected damage of that effect + probability of critical hit * expected_damage (of that move assuming all stat changes reverted) + effect_score)
     activeMove = Dex.mod('gen1').moves.get(activeMove) // make sure this is gen 1
-    attacker = Dex.species.get(attacker)
-    defender = Dex.species.get(defender)
+    attacker = Dex.mod('gen1').species.get(attacker)
+    defender = Dex.mod('gen1').species.get(defender)
     //console.log(defender)
-
+    // console.log(activeMove)
+    // console.log(activeMove.status)
     accuracy = activeMove.accuracy
     if (accuracy == true)
         accuracy = 100
@@ -215,10 +229,16 @@ function scoreHeuristic(expectedDamage, attacker, defender, defenderHP, activeMo
     secondaryScore = 50 * (secondaryProbability / 100)
     primaryScore = 0
     const statuses = ['par', 'frz', 'psn', 'slp', 'brn']
-    has_status = statuses.reduce((accumulator, curr) => accumulator || p1ActiveMon.condition.indexOf(curr) === -1, false)
+    //has_status = statuses.reduce((accumulator, curr) => accumulator || p1ActiveMon.condition.indexOf(curr) === -1, false)
+    let has_status = false
+    statuses.map((stat) => {
+        if (p1ActiveMon.condition.indexOf(stat) != -1)
+            has_status = true;
+    })
     if (activeMove.category == "Status" && activeMove.status && !has_status) {
+        //console.log("got into status")
         primaryEffect = activeMove.status
-
+        
         if (primaryEffect == "par")
             primaryScore = defenderHP * .5
 
@@ -245,6 +265,27 @@ function scoreHeuristic(expectedDamage, attacker, defender, defenderHP, activeMo
         score *= .55
     if (activeMove.name.toLowerCase() == "hyper beam" || activeMove.name.toLowerCase() == "hyperbeam")
         score *= .75
+
+    if (attacker.name == p2ActiveName) {
+        if (p2ActiveMon.condition != "0 fnt") {
+            p2CurrHP = p2ActiveMon.condition.substr(0, p2ActiveMon.condition.indexOf('/'))
+            p2TotalHP = p2ActiveMon.condition.substr(p2ActiveMon.condition.indexOf('/')+1, p2ActiveMon.condition.length)
+            
+            if (attacker.baseStats.spe >= defender.baseStats.spe) {
+                score *= Math.cbrt(p2TotalHP / p2CurrHP)
+            }
+        }
+    }
+    else {
+        if (p2ActiveMon.condition != "0 fnt") {
+            p2CurrHP = p2ActiveMon.condition.substr(0, p2ActiveMon.condition.indexOf('/'))
+            p2TotalHP = p2ActiveMon.condition.substr(p2ActiveMon.condition.indexOf('/')+1, p2ActiveMon.condition.length)
+            //console.log("currHP p2 "+p2CurrHP)
+            if (attacker.baseStats.spe >= defender.baseStats.spe) {
+                score *= Math.pow((p2TotalHP / p2CurrHP), 1/4)
+            }
+        }
+    }
     return score
 }
 
@@ -525,4 +566,17 @@ function calcBestMoves() {
         }
     }
     return bestMoves
+}
+
+function minimax(state, depth, maximizingPlayer) {
+    if (depth == 0) {
+
+    }
+
+    if (maximizingPlayer) {
+        
+    }
+    else {
+
+    }
 }
