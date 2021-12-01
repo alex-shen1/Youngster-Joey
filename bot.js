@@ -3,11 +3,12 @@ const { Dex } = require('pokemon-showdown');
 const { calculate, Generations, Pokemon, Move } = require('@smogon/calc'); // npm install @smogon/calc
 const fs = require('fs');
 
-fs.writeFile('battle-log.txt', "", (err) => {
+fs.writeFileSync('battle-log.txt', "", (err) => {
     if (err) throw err;
-    console.log("Initialized log file")
+    else{
+        console.log('initialized log file')
+    }
 })
-logStream = fs.createWriteStream('battle-log.txt', {flags: 'a'});
 
 stream = new Sim.BattleStream();
 
@@ -85,7 +86,10 @@ async function read() {
         //         }
         //     }
         // }
-        logStream.write(r)
+        fs.appendFileSync('battle-log.txt', r, (err) => {
+            if (err) throw err;
+        })
+
         streamOutput = r
         let data = null
         // Game state data is in JSON, so stringify any JSON that gets output
