@@ -5,7 +5,7 @@ const fs = require('fs');
 
 fs.writeFileSync('battle-log.txt', "", (err) => {
     if (err) throw err;
-    else{
+    else {
         console.log('initialized log file')
     }
 })
@@ -38,7 +38,7 @@ let p1AllMonDict = {}; // All monsters available into which p1 can switch and th
 let p1Wait = null // Bool if p1 currently has to wait
 let p1ForceSwitch = null // Bool if p1 currently is forced to switch
 let p1Side = null // All the "side" data within p1Data
-let p1StatBoosts = {atk: 0, def: 0, spa: 0, spd: 0, spe: 0}
+let p1StatBoosts = { atk: 0, def: 0, spa: 0, spd: 0, spe: 0 }
 
 let p2Data = null
 let p2ActiveMon = null
@@ -51,7 +51,7 @@ let p2AllMonDict = {}; // All monsters available into which p1 can switch and th
 let p2Wait = null
 let p2ForceSwitch = null
 let p2Side = null
-let p2StatBoosts = {atk: 0, def: 0, spa: 0, spd: 0, spe: 0}
+let p2StatBoosts = { atk: 0, def: 0, spa: 0, spd: 0, spe: 0 }
 
 streamOutput = '';
 
@@ -242,7 +242,7 @@ function scoreHeuristic(expectedDamage, attacker, defender, defenderHP, activeMo
     if (activeMove.category == "Status" && activeMove.status && !has_status) {
         //console.log("got into status")
         primaryEffect = activeMove.status
-        
+
         if (primaryEffect == "par")
             primaryScore = defenderHP * .5
 
@@ -265,16 +265,16 @@ function scoreHeuristic(expectedDamage, attacker, defender, defenderHP, activeMo
     else {
         score = (expectedDamage + expectedDamage * critProbability + secondaryScore + primaryScore)
     }
-    if (activeMove.name.toLowerCase() == "explosion" || activeMove.name.toLowerCase() == "self-destruct")
-        score *= .55
+    if (activeMove.name.toLowerCase() == "explosion" || activeMove.name.toLowerCase() == "self-destruct" || activeMove.name.toLowerCase() == "selfdestruct")
+        score *= .5
     if (activeMove.name.toLowerCase() == "hyper beam" || activeMove.name.toLowerCase() == "hyperbeam")
         score *= .75
 
     if (attacker.name == p2ActiveName) {
         if (p2ActiveMon.condition != "0 fnt") {
             p2CurrHP = p2ActiveMon.condition.substr(0, p2ActiveMon.condition.indexOf('/'))
-            p2TotalHP = p2ActiveMon.condition.substr(p2ActiveMon.condition.indexOf('/')+1, p2ActiveMon.condition.length)
-            
+            p2TotalHP = p2ActiveMon.condition.substr(p2ActiveMon.condition.indexOf('/') + 1, p2ActiveMon.condition.length)
+
             if (attacker.baseStats.spe >= defender.baseStats.spe) {
                 score *= Math.cbrt(p2TotalHP / p2CurrHP)
             }
@@ -283,10 +283,10 @@ function scoreHeuristic(expectedDamage, attacker, defender, defenderHP, activeMo
     else {
         if (p2ActiveMon.condition != "0 fnt") {
             p2CurrHP = p2ActiveMon.condition.substr(0, p2ActiveMon.condition.indexOf('/'))
-            p2TotalHP = p2ActiveMon.condition.substr(p2ActiveMon.condition.indexOf('/')+1, p2ActiveMon.condition.length)
+            p2TotalHP = p2ActiveMon.condition.substr(p2ActiveMon.condition.indexOf('/') + 1, p2ActiveMon.condition.length)
             //console.log("currHP p2 "+p2CurrHP)
             if (attacker.baseStats.spe >= defender.baseStats.spe) {
-                score *= Math.pow((p2TotalHP / p2CurrHP), 1/4)
+                score *= Math.pow((p2TotalHP / p2CurrHP), 1 / 4)
             }
         }
     }
@@ -363,13 +363,13 @@ function typingMatchup(attacker, defender) {
         defenderTypes.forEach(defenderType => {
             try {
                 if (resistTypes[attackerType] && resistTypes[attackerType].has(defenderType)) {
-                    advantageRatio *= 1.5
-                }
-                if (immuneTypes[attackerType] && immuneTypes[attackerType].has(defenderType)) {
                     advantageRatio *= 1.8
                 }
+                if (immuneTypes[attackerType] && immuneTypes[attackerType].has(defenderType)) {
+                    advantageRatio *= 2.2
+                }
                 if (weakTypes[attackerType] && weakTypes[attackerType].has(defenderType)) {
-                    advantageRatio /= 2.2
+                    advantageRatio /= 2.5
                 }
             }
             catch (error) {
@@ -578,7 +578,7 @@ function minimax(state, depth, maximizingPlayer) {
     }
 
     if (maximizingPlayer) {
-        
+
     }
     else {
 
