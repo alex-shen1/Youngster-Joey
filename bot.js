@@ -267,7 +267,7 @@ function scoreHeuristic(expectedDamage, attacker, defender, defenderHP, activeMo
     }
     if (activeMove.name.toLowerCase() == "explosion" || activeMove.name.toLowerCase() == "self-destruct" || activeMove.name.toLowerCase() == "selfdestruct")
         score *= .5
-    if (activeMove.name.toLowerCase() == "hyper beam" || activeMove.name.toLowerCase() == "hyperbeam")
+    if (activeMove.name.toLowerCase() == "hyper beam" || activeMove.name.toLowerCase() == "hyperbeam" || activeMove.name.toLowerCase() == "skyattack" || activeMove.name.toLowerCase() == "sky attack")
         score *= .75
 
     if (attacker.name == p2ActiveName) {
