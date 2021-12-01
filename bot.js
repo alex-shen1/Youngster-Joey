@@ -88,8 +88,8 @@ async function read() {
         if (r.indexOf('sideupdate\np1') != -1) {
             p1Data = data
             p1Side = data.side.pokemon
-            // console.log("p1Data !!!!!!!!!!!")
-            // console.log(JSON.stringify(p1Data))
+            console.log("p1Data !!!!!!!!!!!")
+            console.log(JSON.stringify(p1Data))
             p1Wait = p1Data.wait
             p1ForceSwitch = p1Data.forceSwitch
 
@@ -119,8 +119,8 @@ async function read() {
         if (r.indexOf('sideupdate\np2') != -1) {
             p2Data = data
             p2Side = data.side.pokemon
-            // console.log("p2Data !!!!!!!!!!!")
-            // console.log(JSON.stringify(p2Data))
+            console.log("p2Data !!!!!!!!!!!")
+            console.log(JSON.stringify(p2Data))
             p2Wait = p2Data.wait
             p2ForceSwitch = p2Data.forceSwitch
             for (i = 0; i < p2Side.length; i++) {
@@ -187,7 +187,8 @@ function scoreHeuristic(expectedDamage, attacker, defender, defenderHP, activeMo
     attacker = Dex.species.get(attacker)
     defender = Dex.species.get(defender)
     //console.log(defender)
-
+    // console.log(activeMove)
+    // console.log(activeMove.status)
     accuracy = activeMove.accuracy
     if (accuracy == true)
         accuracy = 100
@@ -209,7 +210,7 @@ function scoreHeuristic(expectedDamage, attacker, defender, defenderHP, activeMo
     has_status = statuses.reduce((accumulator, curr) => accumulator || p1ActiveMon.condition.indexOf(curr) === -1, false)
     if (activeMove.category == "Status" && activeMove.status && !has_status) {
         primaryEffect = activeMove.status
-
+        
         if (primaryEffect == "par")
             primaryScore = defenderHP * .5
 
