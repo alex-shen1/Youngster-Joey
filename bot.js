@@ -286,7 +286,7 @@ function scoreHeuristic(expectedDamage, attacker, defender, defenderHP, activeMo
             p2TotalHP = p2ActiveMon.condition.substr(p2ActiveMon.condition.indexOf('/') + 1, p2ActiveMon.condition.length)
             //console.log("currHP p2 "+p2CurrHP)
             if (attacker.baseStats.spe >= defender.baseStats.spe) {
-                score *= Math.pow((p2TotalHP / p2CurrHP), 1 / 4)
+                score *= Math.pow((p2TotalHP / p2CurrHP), 1 / 6)
             }
         }
     }
@@ -307,7 +307,7 @@ const resistTypes = {
     "Water": new Set(["Water", "Grass", "Dragon"]),
     "Electric": new Set(["Electric", "Grass", "Dragon"]),
     "Grass": new Set(["Fire", "Grass", "Poison", "Flying", "Bug", "Dragon"]),
-    "Ice": new Set(["Ice"]),
+    "Ice": new Set(["Water", "Ice"]),
     "Fighting": new Set(["Poison", "Flying", "Psychic", "Bug"]),
     "Poison": new Set(["Rock", "Ground", "Poison", "Ghost"]),
     "Ground": new Set(["Grass", "Bug"]),
@@ -364,12 +364,15 @@ function typingMatchup(attacker, defender) {
             try {
                 if (resistTypes[attackerType] && resistTypes[attackerType].has(defenderType)) {
                     advantageRatio *= 1.8
+                    console.log("STRONG MATCHUP")
                 }
                 if (immuneTypes[attackerType] && immuneTypes[attackerType].has(defenderType)) {
                     advantageRatio *= 2.2
+                    console.log("IMMUNE MATCHUP")
                 }
-                if (weakTypes[attackerType] && weakTypes[attackerType].has(defenderType)) {
+                if (weakTypes[attackerType] && weakTypes[defenderType].has(attackerType)) {
                     advantageRatio /= 2.5
+                    console.log("WEAK MATCHUP")
                 }
             }
             catch (error) {
