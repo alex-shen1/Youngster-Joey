@@ -14,7 +14,7 @@ stream = new Sim.BattleStream();
 
 // Standard initialization logic
 stream.write(`>start {"formatid":"gen1randombattle"}`);
-stream.write(`>player p1 {"name":"Alice"}`);
+stream.write(`>player p1 {"name":"Trainer Haifeng"}`);
 stream.write(`>player p2 {"name":"Youngster Joey"}`);
 
 // Counter for how many times stream has been read
@@ -54,6 +54,17 @@ let p2Side = null
 let p2StatBoosts = { atk: 0, def: 0, spa: 0, spd: 0, spe: 0 }
 
 streamOutput = '';
+
+let prevSwitch = 0
+let prevSwitch2 = 0
+function updateSwitch(i){
+    if(prevSwitch !== 0){
+        prevSwitch2 = i
+    }
+    else{
+        prevSwitch = i
+    }
+}
 
 async function readUntilEnd() {
     streamOutput = ''
@@ -227,8 +238,8 @@ function scoreHeuristic(expectedDamage, attacker, defender, defenderHP, activeMo
     secondaryEffect = ""
     secondaryProbability = 0
     if (secondary != null) {
-        secondaryEffect = secondary["status"]
-        secondaryProbability = secondary["chance"]
+        secondaryEffect = secondary["status"] || 0
+        secondaryProbability = secondary["chance"] || 0
     }
     secondaryScore = 50 * (secondaryProbability / 100)
     primaryScore = 0
@@ -272,8 +283,8 @@ function scoreHeuristic(expectedDamage, attacker, defender, defenderHP, activeMo
 
     if (attacker.name == p2ActiveName) {
         if (p2ActiveMon.condition != "0 fnt") {
-            p2CurrHP = p2ActiveMon.condition.substr(0, p2ActiveMon.condition.indexOf('/'))
-            p2TotalHP = p2ActiveMon.condition.substr(p2ActiveMon.condition.indexOf('/') + 1, p2ActiveMon.condition.length)
+            p2CurrHP = parseInt(p2ActiveMon.condition.substr(0, p2ActiveMon.condition.indexOf('/')))
+            p2TotalHP = parseInt(p2ActiveMon.condition.substr(p2ActiveMon.condition.indexOf('/') + 1, p2ActiveMon.condition.length))
 
             if (attacker.baseStats.spe >= defender.baseStats.spe) {
                 score *= Math.cbrt(p2TotalHP / p2CurrHP)
@@ -282,8 +293,8 @@ function scoreHeuristic(expectedDamage, attacker, defender, defenderHP, activeMo
     }
     else {
         if (p2ActiveMon.condition != "0 fnt") {
-            p2CurrHP = p2ActiveMon.condition.substr(0, p2ActiveMon.condition.indexOf('/'))
-            p2TotalHP = p2ActiveMon.condition.substr(p2ActiveMon.condition.indexOf('/') + 1, p2ActiveMon.condition.length)
+            p2CurrHP = parseInt(p2ActiveMon.condition.substr(0, p2ActiveMon.condition.indexOf('/')))
+            p2TotalHP = parseInt(p2ActiveMon.condition.substr(p2ActiveMon.condition.indexOf('/') + 1, p2ActiveMon.condition.length))
             //console.log("currHP p2 "+p2CurrHP)
             if (attacker.baseStats.spe >= defender.baseStats.spe) {
                 score *= Math.pow((p2TotalHP / p2CurrHP), 1 / 6)
@@ -356,21 +367,21 @@ const weakTypes = {
 }
 
 function typingMatchup(attacker, defender) {
-    let attackerTypes = Dex.species.get(attacker).types
-    let defenderTypes = Dex.species.get(defender).types
+    let attackerTypes = Dex.mod("gen1").species.get(attacker).types
+    let defenderTypes = Dex.mod("gen1").species.get(defender).types
     let advantageRatio = 1
     attackerTypes.forEach(attackerType => {
         defenderTypes.forEach(defenderType => {
             try {
-                if (resistTypes[attackerType] && resistTypes[attackerType].has(defenderType)) {
+                if (resistTypes[attackerType] != undefined && resistTypes[attackerType].has(defenderType)) {
                     advantageRatio *= 1.8
                     console.log("STRONG MATCHUP")
                 }
-                if (immuneTypes[attackerType] && immuneTypes[attackerType].has(defenderType)) {
+                if (immuneTypes[attackerType] != undefined && immuneTypes[attackerType].has(defenderType)) {
                     advantageRatio *= 2.2
                     console.log("IMMUNE MATCHUP")
                 }
-                if (weakTypes[attackerType] && weakTypes[defenderType].has(attackerType)) {
+                if (weakTypes[attackerType] != undefined && weakTypes[defenderType].has(attackerType)) {
                     advantageRatio /= 2.5
                     console.log("WEAK MATCHUP")
                 }
@@ -380,6 +391,7 @@ function typingMatchup(attacker, defender) {
             }
         })
     })
+    console.log('advantage ratio', advantageRatio)
     return advantageRatio
 }
 
@@ -415,6 +427,7 @@ function estimateDamage(attacker, attackerHP, defender, defenderHP, activeMoves,
             //console.log(result.fullDesc()) This line seems to cause a rare bug and unnecessary anyway
             expectedDamage = (result.range()[0] + result.range()[1]) / 2
             score = scoreHeuristic(expectedDamage, attacker, defender, defenderHP, activeMoves[i])
+            console.log('initial heuristic', score)
             // discount switching
             if (attackerHP <= 30)
                 score *= .3
@@ -430,6 +443,9 @@ function estimateDamage(attacker, attackerHP, defender, defenderHP, activeMoves,
                 score *= .6
             advantageRatio = typingMatchup(attacker, defender)
             score *= advantageRatio
+            if(prevSwitch2 === numberMon){
+                score = 1
+            }
             damages.push(score)
             console.log(score)
             //console.log('Expected damage for ' + activeMoves[i].move + ': [' + result.range() + '] || ' + result.moveDesc())
@@ -458,7 +474,7 @@ function estimateDamage(attacker, attackerHP, defender, defenderHP, activeMoves,
 function handleP1Input() {
     if (!p1Wait && !p1ForceSwitch) {
         console.log('P1 Move! Available Moves for ' + p1ActiveName + ': ')
-        const p1moves = p1Data["active"][0].moves || null
+        const p1moves = p1Data["active"] ? p1Data["active"][0].moves : null
         console.log(p1moves.map(c => c.move))
         console.log(p1AllMonDict)
         const x = prompt('');
@@ -493,20 +509,36 @@ function handleP2Input() {
         console.log(bestMoves)
         console.log('AI Move! Available Moves for ' + p2ActiveName + ': ')
         // iterate through bestMove and see if the best move is there or if it requires switching then add logic for move or switch
-        decision = bestMoves[0]
-        for (i = 1; i < bestMoves.length; i++) {
-            if (decision[2] < bestMoves[i][2]) {
-                decision = bestMoves[i]
+
+        // Sort best moves by heuristic
+        bestMoves.sort((a,b) => {
+            if (a[2] > b[2]) {
+                return -1;
             }
+            else{
+                return 1;
+            }
+        })
+
+        decision = bestMoves[0]
+        if(decision[0] === prevSwitch2 && bestMoves.length > 1){
+            decision = bestMoves[1]
         }
+
         let y = ''
         // Means that p2 found a better damaging move from another pokemon
         if (decision[0] != 1) {
             //console.log('AI SWITCH TIME')
             y = '>p2 switch ' + decision[0]
+            updateSwitch(decision[0])
         }
         else {
-            y = '>p2 move ' + decision[1]
+            // TODO: sometimes the AI wants to do move 0. Don't know why, this is a quick fix
+            let move = decision[1]
+            if (move == 0){
+                move = 1
+            }
+            y = '>p2 move ' + move
         }
 
         if (y == "quit")
