@@ -57,6 +57,7 @@ streamOutput = '';
 
 let prevSwitch = 0
 let prevSwitch2 = 0
+let switchedLastTurn = false
 function updateSwitch(i){
     if(prevSwitch !== 0){
         prevSwitch2 = i
@@ -110,6 +111,7 @@ async function read() {
             //console.log(JSON.stringify(data, null, 2))
         }
         else {
+
             console.log(r)
             // let boostindex = r.indexOf("-boost")
             // let unboostindex = r.indexOf("-unboost")
@@ -118,13 +120,16 @@ async function read() {
             //     let sub = r.substr(boostindex, )
             // }
             // console.log("searching")
+            if (r.indexOf('|win|') != -1) {
+                process.exit(0)
+            }
         }
         i += 1
         if (r.indexOf('sideupdate\np1') != -1) {
             p1Data = data
             p1Side = data.side.pokemon
-            // console.log("p1Data !!!!!!!!!!!")
-            // console.log(JSON.stringify(p1Data))
+            // console.log("p1Side")
+            // console.log(JSON.stringify(p1Side))
             p1Wait = p1Data.wait
             p1ForceSwitch = p1Data.forceSwitch
 
@@ -155,8 +160,8 @@ async function read() {
         if (r.indexOf('sideupdate\np2') != -1) {
             p2Data = data
             p2Side = data.side.pokemon
-            // console.log("p2Data !!!!!!!!!!!")
-            // console.log(JSON.stringify(p2Data))
+            // console.log("p2Side: ")
+            // console.log(JSON.stringify(p2Side))
             p2Wait = p2Data.wait
             p2ForceSwitch = p2Data.forceSwitch
             for (i = 0; i < p2Side.length; i++) {
@@ -220,7 +225,7 @@ function takeTurn() {
  */
 function scoreHeuristic(expectedDamage, attacker, defender, defenderHP, activeMove) {
     //accuracy*(expected_damage + probability of second effect occurring*future value expected damage of that effect + probability of critical hit * expected_damage (of that move assuming all stat changes reverted) + effect_score)
-    activeMove = Dex.mod('gen1').moves.get(activeMove) // make sure this is gen 1
+    activeMove = Dex.mod('gen1').moves.get(activeMove)
     attacker = Dex.mod('gen1').species.get(attacker)
     defender = Dex.mod('gen1').species.get(defender)
     //console.log(defender)
@@ -411,8 +416,6 @@ function estimateDamage(attacker, attackerHP, defender, defenderHP, activeMoves,
     if (activeMoves[0].move == "Recharge" && activeMoves.length == 1) {
         return [numberMon, 1, 9999] // This way AI will always pick Recharge when it has to
     }
-    // Need to figure out a good way to implement the KO chance 
-    // Also need a good way to pass in the current hp of both pokemon (important for recoil) / current stat boosts
     const attackingmon = new Pokemon(gen, attacker, { curHP: attackerHP })
     const defendingmon = new Pokemon(gen, defender, { curHP: defenderHP })
     let damages = []
@@ -424,7 +427,7 @@ function estimateDamage(attacker, attackerHP, defender, defenderHP, activeMoves,
                 defendingmon,
                 new Move(gen, activeMoves[i])
             )
-            //console.log(result.fullDesc()) This line seems to cause a rare bug and unnecessary anyway
+            //console.log(result.fullDesc())
             expectedDamage = (result.range()[0] + result.range()[1]) / 2
             score = scoreHeuristic(expectedDamage, attacker, defender, defenderHP, activeMoves[i])
             console.log('initial heuristic', score)
@@ -441,10 +444,10 @@ function estimateDamage(attacker, attackerHP, defender, defenderHP, activeMoves,
                 score *= .5
             else
                 score *= .6
-            advantageRatio = typingMatchup(attacker, defender)
+            advantageRatio = (!switchedLastTurn ? typingMatchup(attacker, defender) : 1)
             score *= advantageRatio
             if(prevSwitch2 === numberMon){
-                score = 1
+                score *= .6
             }
             damages.push(score)
             console.log(score)
@@ -530,11 +533,13 @@ function handleP2Input() {
         if (decision[0] != 1) {
             //console.log('AI SWITCH TIME')
             y = '>p2 switch ' + decision[0]
+            switchedLastTurn = true
             updateSwitch(decision[0])
         }
         else {
             // TODO: sometimes the AI wants to do move 0. Don't know why, this is a quick fix
             let move = decision[1]
+            switchedLastTurn = false
             if (move == 0){
                 move = 1
             }
@@ -562,6 +567,7 @@ function handleP2Input() {
                 decision = bestMoves[i]
             }
         }
+        switchedLastTurn = false
         let y = '>p2 switch ' + decision[0]
 
         if (y == "quit")
